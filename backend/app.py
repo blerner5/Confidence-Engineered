@@ -7,6 +7,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request
+import jwt
+from datetime import timedelta
+
+SECRET_KEY = "change-this-to-a-long-random-secret"
+JWT_ALGORITHM = "HS256"
+
+USERS = {}
 
 try:
     from openai import OpenAI

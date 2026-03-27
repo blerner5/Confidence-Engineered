@@ -1,3 +1,8 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 import { useMemo, useState } from 'react'
 import {
   Alert,
@@ -23,7 +28,7 @@ import {
   createTheme,
 } from '@mui/material'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
-import SendRoundedIcon from '@mui/icons-material/SendRounded'
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import MicRoundedIcon from '@mui/icons-material/MicRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
@@ -50,33 +55,16 @@ const INITIAL_FORM = {
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: {
-      main: '#0f4c81',
-    },
-    secondary: {
-      main: '#1f7a8c',
-    },
-    background: {
-      default: '#eef3f8',
-      paper: '#ffffff',
-    },
+    primary: { main: '#0f4c81' },
+    secondary: { main: '#1f7a8c' },
+    background: { default: '#eef3f8', paper: '#ffffff' },
   },
-  shape: {
-    borderRadius: 16,
-  },
+  shape: { borderRadius: 16 },
   typography: {
     fontFamily: '"Manrope", "Inter", "Segoe UI", sans-serif',
-    h2: {
-      fontWeight: 700,
-      letterSpacing: '-0.02em',
-    },
-    h5: {
-      fontWeight: 700,
-    },
-    button: {
-      textTransform: 'none',
-      fontWeight: 600,
-    },
+    h2: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h5: { fontWeight: 700 },
+    button: { textTransform: 'none', fontWeight: 600 },
   },
 })
 
@@ -101,15 +89,12 @@ function extractInterviewerText(payload) {
     payload?.data?.question,
     payload?.data?.response,
   ]
-
   return candidates.find((item) => typeof item === 'string' && item.trim()) || ''
 }
 
 function buildFeedbackRows(payload) {
   const source = payload?.scores || payload?.feedback || payload?.data?.feedback || payload
-  if (!source || typeof source !== 'object') {
-    return []
-  }
+  if (!source || typeof source !== 'object') return []
 
   const preferredOrder = ['Clarity', 'Relevance', 'Structure', 'Confidence', 'Depth']
   const keys = Object.keys(source)
@@ -123,14 +108,8 @@ function buildFeedbackRows(payload) {
   return ordered
     .map((key) => {
       const raw = source[key] ?? source[key.toLowerCase()]
-      if (raw == null) {
-        return null
-      }
-
-      if (typeof raw === 'number') {
-        return { label: key, score: raw, comment: '' }
-      }
-
+      if (raw == null) return null
+      if (typeof raw === 'number') return { label: key, score: raw, comment: '' }
       if (typeof raw === 'object') {
         return {
           label: key,
@@ -138,13 +117,12 @@ function buildFeedbackRows(payload) {
           comment: raw.comment ?? raw.notes ?? raw.feedback ?? '',
         }
       }
-
       return { label: key, score: '-', comment: String(raw) }
     })
     .filter(Boolean)
 }
 
-function App() {
+function InterviewPage() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [customTopic, setCustomTopic] = useState('')
   const [sessionId, setSessionId] = useState('')
@@ -160,10 +138,7 @@ function App() {
   const feedbackRows = useMemo(() => buildFeedbackRows(feedbackPayload), [feedbackPayload])
 
   const updateForm = (field) => (event) => {
-    setForm((current) => ({
-      ...current,
-      [field]: event.target.value,
-    }))
+    setForm((current) => ({ ...current, [field]: event.target.value }))
   }
 
   const toggleTopic = (topic) => {
@@ -180,31 +155,20 @@ function App() {
 
   const addCustomTopic = () => {
     const normalized = normalizeTopic(customTopic)
-    if (!normalized) {
-      return
-    }
+    if (!normalized) return
     setForm((current) => {
       if (current.topics.some((topic) => topic.toLowerCase() === normalized.toLowerCase())) {
         return current
       }
-      return {
-        ...current,
-        topics: [...current.topics, normalized],
-      }
+      return { ...current, topics: [...current.topics, normalized] }
     })
     setCustomTopic('')
   }
 
   const validateSetup = () => {
-    if (!form.jobDescription.trim()) {
-      return 'Please add a job description before starting.'
-    }
-    if (!form.background.trim()) {
-      return 'Please add your professional background before starting.'
-    }
-    if (!form.topics.length) {
-      return 'Please select at least one interview topic.'
-    }
+    if (!form.jobDescription.trim()) return 'Please add a job description before starting.'
+    if (!form.background.trim()) return 'Please add your professional background before starting.'
+    if (!form.topics.length) return 'Please select at least one interview topic.'
     return ''
   }
 
@@ -231,12 +195,7 @@ function App() {
       setSessionId(nextSessionId)
       setMessages(
         openingQuestion
-          ? [
-              {
-                role: 'interviewer',
-                text: openingQuestion,
-              },
-            ]
+          ? [{ role: 'interviewer', text: openingQuestion }]
           : [],
       )
       setFeedbackPayload(null)
@@ -255,9 +214,7 @@ function App() {
     }
 
     const message = responseDraft.trim()
-    if (!message) {
-      return
-    }
+    if (!message) return
 
     setError('')
     setIsResponding(true)
@@ -271,9 +228,7 @@ function App() {
 
       setMessages((current) => {
         const next = [...current, { role: 'candidate', text: message }]
-        if (interviewerReply) {
-          next.push({ role: 'interviewer', text: interviewerReply })
-        }
+        if (interviewerReply) next.push({ role: 'interviewer', text: interviewerReply })
         return next
       })
 
@@ -286,9 +241,7 @@ function App() {
   }
 
   const handleEndSession = async () => {
-    if (!sessionId) {
-      return
-    }
+    if (!sessionId) return
 
     setError('')
     setIsEnding(true)
@@ -585,14 +538,14 @@ function App() {
           </Grid>
 
           {error && (
-            <Alert sx={{ mt: 3 }} severity="error" onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-        </Container>
-      </Box>
-    </ThemeProvider>
-  )
-}
+              <Alert sx={{ mt: 3 }} severity="error" onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
+                    </Container>
+                  </Box>
+                </ThemeProvider>
+              )
+            }
 
-export default App
+            export default App

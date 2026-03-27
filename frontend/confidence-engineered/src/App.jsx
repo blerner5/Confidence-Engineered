@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+import { useMemo, useState } from 'react'
 import {
   Alert, AppBar, Box, Button, Card, CardContent, Chip, CircularProgress, Container, CssBaseline,
   Divider, Grid, IconButton, InputAdornment, LinearProgress, Paper, Stack, TextField, ThemeProvider,
   ToggleButton, ToggleButtonGroup, Toolbar, Typography, createTheme,
 } from '@mui/material'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
-import SendRoundedIcon from '@mui/icons-material/SendRounded'
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import MicRoundedIcon from '@mui/icons-material/MicRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
@@ -34,6 +40,44 @@ const extractSessionId = (p) => p?.session_id || p?.sessionId || p?.data?.sessio
 const extractInterviewerText = (p) => [p?.interviewer_message, p?.question, p?.next_question, p?.response, p?.ai_response, p?.message, p?.prompt, p?.data?.interviewer_message, p?.data?.question, p?.data?.response].find((s) => typeof s === 'string' && s.trim()) || ''
 const extractTranscriptText = (p) => (typeof (p?.transcript || p?.data?.transcript) === 'string' ? (p?.transcript || p?.data?.transcript).trim() : '')
 const formatDuration = (s) => `${String(Math.floor(Math.max(0, Math.min(MAX_RECORD_SECONDS, s || 0)) / 60)).padStart(2, '0')}:${String(Math.max(0, Math.min(MAX_RECORD_SECONDS, s || 0)) % 60).padStart(2, '0')}`
+  palette: {
+    mode: 'light',
+    primary: { main: '#0f4c81' },
+    secondary: { main: '#1f7a8c' },
+    background: { default: '#eef3f8', paper: '#ffffff' },
+  },
+  shape: { borderRadius: 16 },
+  typography: {
+    fontFamily: '"Manrope", "Inter", "Segoe UI", sans-serif',
+    h2: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h5: { fontWeight: 700 },
+    button: { textTransform: 'none', fontWeight: 600 },
+  },
+})
+
+function normalizeTopic(value) {
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function extractSessionId(payload) {
+  return payload?.session_id || payload?.sessionId || payload?.data?.session_id || ''
+}
+
+function extractInterviewerText(payload) {
+  const candidates = [
+    payload?.interviewer_message,
+    payload?.question,
+    payload?.next_question,
+    payload?.response,
+    payload?.ai_response,
+    payload?.message,
+    payload?.prompt,
+    payload?.data?.interviewer_message,
+    payload?.data?.question,
+    payload?.data?.response,
+  ]
+  return candidates.find((item) => typeof item === 'string' && item.trim()) || ''
+}
 
 function buildFeedbackRows(payload) {
   const source = payload?.scores || payload?.feedback || payload?.data?.feedback || payload
@@ -48,9 +92,34 @@ function buildFeedbackRows(payload) {
     if (typeof raw === 'object') return { label: key, score: raw.score ?? raw.value ?? raw.rating ?? '-', comment: raw.comment ?? raw.notes ?? raw.feedback ?? '' }
     return { label: key, score: '-', comment: String(raw) }
   }).filter(Boolean)
+
+  const preferredOrder = ['Clarity', 'Relevance', 'Structure', 'Confidence', 'Depth']
+  const keys = Object.keys(source)
+  const ordered = [
+    ...preferredOrder.filter((label) => keys.includes(label) || keys.includes(label.toLowerCase())),
+    ...keys.filter(
+      (key) => !preferredOrder.some((label) => label.toLowerCase() === key.toLowerCase()),
+    ),
+  ]
+
+  return ordered
+    .map((key) => {
+      const raw = source[key] ?? source[key.toLowerCase()]
+      if (raw == null) return null
+      if (typeof raw === 'number') return { label: key, score: raw, comment: '' }
+      if (typeof raw === 'object') {
+        return {
+          label: key,
+          score: raw.score ?? raw.value ?? raw.rating ?? '-',
+          comment: raw.comment ?? raw.notes ?? raw.feedback ?? '',
+        }
+      }
+      return { label: key, score: '-', comment: String(raw) }
+    })
+    .filter(Boolean)
 }
 
-function App() {
+function InterviewPage() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [customTopic, setCustomTopic] = useState('')
   const [sessionId, setSessionId] = useState('')
@@ -78,6 +147,8 @@ function App() {
       window.clearInterval(timerRef.current)
       timerRef.current = null
     }
+  const updateForm = (field) => (event) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }))
   }
 
   const clearVoiceDraft = () => {
@@ -106,6 +177,12 @@ function App() {
     const normalized = normalizeTopic(customTopic)
     if (!normalized) return
     setForm((current) => current.topics.some((topic) => topic.toLowerCase() === normalized.toLowerCase()) ? current : { ...current, topics: [...current.topics, normalized] })
+    setForm((current) => {
+      if (current.topics.some((topic) => topic.toLowerCase() === normalized.toLowerCase())) {
+        return current
+      }
+      return { ...current, topics: [...current.topics, normalized] }
+    })
     setCustomTopic('')
   }
 
@@ -137,6 +214,13 @@ function App() {
       const openingQuestion = extractInterviewerText(payload)
       setSessionId(extractSessionId(payload))
       setMessages(openingQuestion ? [{ role: 'interviewer', text: openingQuestion, source: 'text' }] : [])
+
+      setSessionId(nextSessionId)
+      setMessages(
+        openingQuestion
+          ? [{ role: 'interviewer', text: openingQuestion }]
+          : [],
+      )
       setFeedbackPayload(null)
       setInputMode('text')
       setResponseDraft('')
@@ -150,6 +234,15 @@ function App() {
   }
 
   const submitTurn = async (sendRequest, candidateText, source) => {
+  const handleSendResponse = async () => {
+    if (!sessionId) {
+      setError('Missing session id. Start a new interview.')
+      return
+    }
+
+    const message = responseDraft.trim()
+    if (!message) return
+
     setError('')
     setIsResponding(true)
     try {
@@ -158,6 +251,8 @@ function App() {
       setMessages((current) => {
         const next = [...current, { role: 'candidate', text: candidateText, source }]
         if (interviewerReply) next.push({ role: 'interviewer', text: interviewerReply, source: 'text' })
+        const next = [...current, { role: 'candidate', text: message }]
+        if (interviewerReply) next.push({ role: 'interviewer', text: interviewerReply })
         return next
       })
       return payload
@@ -258,6 +353,8 @@ function App() {
     clearVoiceDraft()
     setRecordingSeconds(0)
   }
+  const handleEndSession = async () => {
+    if (!sessionId) return
 
   const handleEndSession = async () => {
     if (!sessionId) return
@@ -332,3 +429,16 @@ function App() {
 }
 
 export default App
+
+          {error && (
+              <Alert sx={{ mt: 3 }} severity="error" onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
+                    </Container>
+                  </Box>
+                </ThemeProvider>
+              )
+            }
+
+            export default App

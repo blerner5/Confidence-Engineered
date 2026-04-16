@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 import {
   Alert, AppBar, Box, Button, Card, CardContent, Chip, CircularProgress, Container, CssBaseline,
   Divider, Grid, IconButton, InputAdornment, LinearProgress, Paper, Stack, TextField, ThemeProvider,
@@ -50,7 +55,7 @@ function buildFeedbackRows(payload) {
   }).filter(Boolean)
 }
 
-function App() {
+function InterviewPage() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [customTopic, setCustomTopic] = useState('')
   const [sessionId, setSessionId] = useState('')
@@ -329,6 +334,22 @@ function App() {
       </Box>
     </ThemeProvider>
   )
+}
+
+function App() {
+  const { token, isAuthenticated } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/interview" />} />
+      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/interview" />} />
+      <Route
+        path="/interview"
+        element={isAuthenticated ? <InterviewPage /> : <Navigate to="/login" />}
+      />
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/interview" : "/login"} />} />
+    </Routes>
+  );
 }
 
 export default App

@@ -10,7 +10,7 @@ import {
   ToggleButton, ToggleButtonGroup, Toolbar, Typography, createTheme,
 } from '@mui/material'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
-import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import SendRoundedIcon from '@mui/icons-material/SendRounded'
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import MicRoundedIcon from '@mui/icons-material/MicRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'

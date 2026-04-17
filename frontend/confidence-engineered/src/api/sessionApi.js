@@ -1,27 +1,29 @@
-const API_BASE = "http://127.0.0.1:5000/api/session";
+import { postForm, postJson } from './client'
 
-export async function startInterviewSession() {
-  const response = await fetch(`${API_BASE}/start`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  return response.json();
+export const startInterviewSession = ({ jobDescription, background, topics }) => {
+  return postJson('/api/session/start', {
+    job_description: jobDescription,
+    background,
+    topics,
+  })
 }
 
-export async function respondInterviewSession(sessionId, userMessage) {
-  const response = await fetch(`${API_BASE}/respond`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, user_message: userMessage }),
-  });
-  return response.json();
+export const respondInterviewSession = ({ sessionId, response }) => {
+  return postJson('/api/session/respond', {
+    session_id: sessionId,
+    response,
+  })
 }
 
-export async function endInterviewSession(sessionId) {
-  const response = await fetch(`${API_BASE}/end`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-  return response.json();
+export const respondInterviewSessionAudio = ({ sessionId, audioBlob, filename = 'response.webm' }) => {
+  const formData = new FormData()
+  formData.append('session_id', sessionId)
+  formData.append('audio', audioBlob, filename)
+  return postForm('/api/session/respond', formData)
+}
+
+export const endInterviewSession = ({ sessionId }) => {
+  return postJson('/api/session/end', {
+    session_id: sessionId,
+  })
 }

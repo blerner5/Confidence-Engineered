@@ -81,15 +81,24 @@ def _transcribe_audio(uploaded_file) -> Optional[str]:
         return None
 
     suffix = os.path.splitext(uploaded_file.filename or "audio.webm")[1] or ".webm"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as tmp:
-        uploaded_file.save(tmp.name)
-        with open(tmp.name, "rb") as f:
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = tmp.name
+        
+        uploaded_file.save(tmp_path)
+        with open(tmp_path, "rb") as f:
+            result = client.audio.transcriptions.create(model="whisper-1", file=f)
+            return (result.text or "").strip()
+    except Exception as exc:
+        app.logger.warning("Whisper transcription failed: %s", exc)
+        return None
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
             try:
-                result = client.audio.transcriptions.create(model="whisper-1", file=f)
-                return (result.text or "").strip()
-            except Exception as exc:
-                app.logger.warning("Whisper transcription failed: %s", exc)
-                return None
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
 
 def _build_system_prompt(job_description: str, background: str, topics: List[str]) -> str:

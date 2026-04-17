@@ -548,4 +548,21 @@ function InterviewPage() {
               )
             }
 
-            export default App
+            export default function App() {
+  const { isAuthenticated } = useAuth();
+  
+  return (
+    <Routes>
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/interview" replace /> : <Login />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/interview" replace /> : <Register />} />
+      <Route 
+        path="/interview" 
+        element={isAuthenticated ? <InterviewPage /> : <Navigate to="/login" replace />} 
+      />
+      <Route 
+        path="*" 
+        element={<Navigate to={isAuthenticated ? "/interview" : "/login"} replace />} 
+      />
+    </Routes>
+  );
+}

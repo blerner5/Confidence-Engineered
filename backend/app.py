@@ -29,8 +29,7 @@ SESSIONS: Dict[str, Dict[str, Any]] = {}
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def _utc_now() -> str: return datetime.now(timezone.utc).isoformat()
 
 
 def _parse_bool(value: Any) -> bool:
@@ -315,6 +314,62 @@ def debug_session(session_id: str):
     return jsonify({"session": session}), 200
 
 
+@app.post("/api/register")
+def register():
+    payload = request.get_json(silent=True) or {}
+    email = payload.get("email")
+    password = payload.get("password")
+    
+    if not email or not password:
+        return jsonify({"message": "Email and password are required"}), 400
+        
+    if email in USERS:
+        return jsonify({"message": "User already exists"}), 400
+        
+    USERS[email] = password
+    return jsonify({"message": "User registered successfully"}), 201
+
+
+@app.post("/api/login")
+def login():
+    payload = request.get_json(silent=True) or {}
+    email = payload.get("email")
+    password = payload.get("password")
+    
+    if not email or not password:
+        return jsonify({"message": "Email and password are required"}), 400
+        
+    if USERS.get(email) != password:
+        return jsonify({"message": "Invalid email or password"}), 401
+        
+    token = jwt.encode(
+        {"sub": email, "exp": datetime.now(timezone.utc) + timedelta(hours=24)},
+        SECRET_KEY,
+        algorithm=JWT_ALGORITHM
+    )
+    
+    # In older versions of PyJWT, encode returns bytes. Convert to str if necessary.
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+        
+    return jsonify({"access_token": token, "message": "Login successful"}), 200
+
+
+@app.route("/")
+def index():
+    return jsonify({"status": "Backend is running!"}), 200
+
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_routes(path):
+    return jsonify({}), 200
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Debug')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 if __name__ == "__main__":
     app.run(debug=True)
-

@@ -6,8 +6,8 @@ import Register from "./pages/Register";
 
 import {
   Alert, AppBar, Box, Button, Card, CardContent, Chip, CircularProgress, Container, CssBaseline,
-  Divider, Grid, IconButton, InputAdornment, LinearProgress, Paper, Stack, TextField, ThemeProvider,
-  ToggleButton, ToggleButtonGroup, Toolbar, Typography, createTheme,
+  Divider, Grid, IconButton, InputAdornment, LinearProgress, Paper, Stack, TextField,
+  ToggleButton, ToggleButtonGroup, Toolbar, Typography,
 } from '@mui/material'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import SendRoundedIcon from '@mui/icons-material/SendRounded'
@@ -28,21 +28,7 @@ const INITIAL_FORM = {
   topics: ['Teamwork', 'Leadership', 'Problem Solving'],
 }
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: { main: '#0f4c81' },
-    secondary: { main: '#1f7a8c' },
-    background: { default: '#eef3f8', paper: '#ffffff' },
-  },
-  shape: { borderRadius: 16 },
-  typography: {
-    fontFamily: '"Manrope", "Inter", "Segoe UI", sans-serif',
-    h2: { fontWeight: 700, letterSpacing: '-0.02em' },
-    h5: { fontWeight: 700 },
-    button: { textTransform: 'none', fontWeight: 600 },
-  },
-})
+import Dashboard from './pages/Dashboard'
 
 function normalizeTopic(value) {
   return value.trim().replace(/\s+/g, ' ')
@@ -425,8 +411,7 @@ function InterviewPage() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       <Box
         sx={{
           minHeight: '100vh',
@@ -784,7 +769,7 @@ function InterviewPage() {
           )}
         </Container>
       </Box>
-    </ThemeProvider>
+    </>
   )
 }
 
@@ -793,15 +778,19 @@ export default function App() {
   
   return (
     <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/interview" replace /> : <Login />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/interview" replace /> : <Register />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
+      <Route 
+        path="/dashboard" 
+        element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />} 
+      />
       <Route 
         path="/interview" 
         element={isAuthenticated ? <InterviewPage /> : <Navigate to="/login" replace />} 
       />
       <Route 
         path="*" 
-        element={<Navigate to={isAuthenticated ? "/interview" : "/login"} replace />} 
+        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
       />
     </Routes>
   );

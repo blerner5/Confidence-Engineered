@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -99,6 +99,8 @@ function buildFeedbackRows(payload) {
 }
 
 function InterviewPage() {
+  const { userId } = useAuth()
+  const navigate = useNavigate()
   const [form, setForm] = useState(INITIAL_FORM)
   const [customTopic, setCustomTopic] = useState('')
   const [sessionId, setSessionId] = useState('')
@@ -208,6 +210,7 @@ function InterviewPage() {
         jobDescription: form.jobDescription,
         background: form.background,
         topics: form.topics,
+        userId,
       })
 
       const nextSessionId = extractSessionId(payload)
@@ -424,7 +427,10 @@ function InterviewPage() {
             <Typography variant="h6" color="primary.main" sx={{ fontWeight: 800 }}>
               Confidence, Engineered
             </Typography>
-            <Box sx={{ ml: 'auto' }}>
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 2 }}>
+              <Button color="secondary" variant="outlined" onClick={() => navigate('/dashboard')}>
+                Dashboard
+              </Button>
               <Button color="primary" startIcon={<RestartAltRoundedIcon />} onClick={handleReset}>
                 New Setup
               </Button>

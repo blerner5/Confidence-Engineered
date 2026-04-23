@@ -11,6 +11,7 @@ import jwt
 from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
 
 SECRET_KEY = "change-this-to-a-long-random-secret"
 JWT_ALGORITHM = "HS256"
@@ -34,6 +35,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(120), nullable=True)
+    role = db.Column(db.String(120), nullable=True)
+    avatar_id = db.Column(db.String(50), default="generic")
 
 class InterviewSession(db.Model):
     __tablename__ = 'interview_session'
@@ -62,6 +66,14 @@ class Feedback(db.Model):
 
 with app.app_context():
     db.create_all()
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE user ADD COLUMN name VARCHAR(120)"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN role VARCHAR(120)"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN avatar_id VARCHAR(50)"))
+            conn.commit()
+    except Exception:
+        pass
 
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
@@ -94,6 +106,17 @@ def _openai_client() -> Optional[Any]:
     if not api_key:
         return None
     return OpenAI(api_key=api_key)
+
+def get_current_user():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload["sub"]
+    except Exception:
+        return None
 
 
 def _call_chat(messages: List[Dict[str, str]], temperature: float = 0.5) -> Optional[str]:
@@ -254,6 +277,8 @@ def start_session():
             "topic_count": len(topics),
             "current_topic_index": 0,
             "messages": messages,
+            "feedback": None,
+            "user_email": get_current_user()
         }
     return jsonify(response), 200
 
@@ -392,6 +417,8 @@ def register():
     payload = request.get_json(silent=True) or {}
     email = payload.get("email")
     password = payload.get("password")
+    name = payload.get("name")
+    role = payload.get("role")
     
     if not email or not password:
         return jsonify({"message": "Email and password are required"}), 400
@@ -401,7 +428,10 @@ def register():
         
     new_user = User(
         email=email,
-        password_hash=generate_password_hash(password)
+        password_hash=generate_password_hash(password),
+        name=name,
+        role=role,
+        avatar_id="generic"
     )
     db.session.add(new_user)
     db.session.commit()
@@ -463,7 +493,14 @@ def analytics(user_id):
             "feedback": json.loads(fb.raw_data) if fb else None
         })
         
+    user = User.query.get(user_id)
     return jsonify({
+        "user": {
+            "name": user.name or user.email.split("@")[0].capitalize(),
+            "email": user.email,
+            "role": user.role or "Candidate",
+            "avatarId": user.avatar_id or "generic"
+        },
         "averages": {
             "clarity": avg_clarity,
             "relevance": avg_relevance,
@@ -473,6 +510,27 @@ def analytics(user_id):
         },
         "sessions": past_sessions
     }), 200
+
+@app.post("/api/user/update")
+def update_user():
+    user_email = get_current_user()
+    if not user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(email=user_email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    payload = request.get_json(silent=True) or {}
+    if "avatar_id" in payload:
+        user.avatar_id = payload["avatar_id"]
+    if "name" in payload:
+        user.name = payload["name"]
+    if "role" in payload:
+        user.role = payload["role"]
+        
+    db.session.commit()
+    return jsonify({"message": "Profile updated successfully"}), 200
 
 
 @app.route("/")

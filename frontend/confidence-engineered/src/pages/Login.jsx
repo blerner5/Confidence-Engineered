@@ -18,8 +18,8 @@ export default function Login() {
     const data = await loginUser(email, password);
 
     if (data.access_token) {
-      login(data.access_token);
-      navigate("/interview");
+      login(data.access_token, data.user_id);
+      navigate("/dashboard");
     } else {
       setError(data.message || "Login failed");
     }

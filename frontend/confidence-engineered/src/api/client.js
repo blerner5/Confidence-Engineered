@@ -3,6 +3,7 @@ export async function postJson(path, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(localStorage.getItem('authToken') ? { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } : {})
     },
     body: JSON.stringify(body),
   })
@@ -19,6 +20,9 @@ export async function postJson(path, body) {
 export async function postForm(path, formData) {
   const response = await fetch(path, {
     method: 'POST',
+    headers: {
+      ...(localStorage.getItem('authToken') ? { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } : {})
+    },
     body: formData,
   })
 

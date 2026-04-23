@@ -1,10 +1,10 @@
-const API_BASE = "http://127.0.0.1:5000/api";
+const API_BASE = "/api";
 
-export async function registerUser(email, password) {
+export async function registerUser(email, password, name, role) {
   const response = await fetch(`${API_BASE}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, name, role }),
   });
   return response.json();
 }

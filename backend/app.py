@@ -12,6 +12,10 @@ from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+GOOGLE_CLIENT_ID = "555185131868-mvkio7hhse2ka2m14seida28u4vra5fu.apps.googleusercontent.com"
 
 SECRET_KEY = "change-this-to-a-long-random-secret"
 JWT_ALGORITHM = "HS256"
@@ -464,6 +468,45 @@ def login():
         
     return jsonify({"access_token": token, "user_id": user.id, "message": "Login successful"}), 200
 
+
+@app.post("/api/auth/google")
+def google_auth():
+    payload = request.get_json(silent=True) or {}
+    credential = payload.get("credential")
+    
+    if not credential:
+        return jsonify({"message": "Credential is required"}), 400
+        
+    try:
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
+        
+        email = idinfo.get("email")
+        name = idinfo.get("name", "")
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            # Auto-register
+            user = User(
+                email=email,
+                password_hash="oauth",
+                name=name,
+                role="Candidate",
+                avatar_id="generic"
+            )
+            db.session.add(user)
+            db.session.commit()
+            
+        token = jwt.encode(
+            {"sub": email, "exp": datetime.now(timezone.utc) + timedelta(hours=24)},
+            SECRET_KEY,
+            algorithm=JWT_ALGORITHM
+        )
+        if isinstance(token, bytes):
+            token = token.decode("utf-8")
+            
+        return jsonify({"access_token": token, "user_id": user.id, "message": "Google Login successful"}), 200
+    except ValueError as e:
+        return jsonify({"message": "Invalid Google token"}), 401
 
 @app.get("/api/analytics/<int:user_id>")
 def analytics(user_id):

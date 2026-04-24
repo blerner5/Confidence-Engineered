@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerUser } from "../api/authApi";
-import { Box, Button, TextField, Typography, Stack, Paper } from "@mui/material";
+import { registerUser, googleLoginUser } from "../api/authApi";
+import { useAuth } from "../context/AuthContext";
+import { Box, Button, TextField, Typography, Stack, Paper, Divider } from "@mui/material";
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -11,6 +13,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,6 +27,21 @@ export default function Register() {
       setTimeout(() => navigate("/login"), 1000);
     } else {
       setError(data.message || "Registration failed");
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    try {
+      const data = await googleLoginUser(credentialResponse.credential);
+      if (data.access_token) {
+        login(data.access_token, data.user_id);
+        navigate("/dashboard");
+      } else {
+        setError(data.message || "Google login failed");
+      }
+    } catch (err) {
+      setError("Failed to connect to server");
     }
   };
 
@@ -66,6 +84,13 @@ export default function Register() {
             <Button variant="text" fullWidth onClick={() => navigate("/login")}>
               Already have an account? Login
             </Button>
+            <Divider>OR</Divider>
+            <Box display="flex" justifyItems="center" justifyContent="center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google Login Failed")}
+              />
+            </Box>
           </Stack>
         </form>
       </Paper>

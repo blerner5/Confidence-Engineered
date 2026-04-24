@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/authApi";
+import { loginUser, googleLoginUser } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
-import { Box, Button, TextField, Typography, Stack, Paper } from "@mui/material";
+import { Box, Button, TextField, Typography, Stack, Paper, Divider } from "@mui/material";
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,21 @@ export default function Login() {
       navigate("/dashboard");
     } else {
       setError(data.message || "Login failed");
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    try {
+      const data = await googleLoginUser(credentialResponse.credential);
+      if (data.access_token) {
+        login(data.access_token, data.user_id);
+        navigate("/dashboard");
+      } else {
+        setError(data.message || "Google login failed");
+      }
+    } catch (err) {
+      setError("Failed to connect to server");
     }
   };
 
@@ -51,6 +67,13 @@ export default function Login() {
             <Button variant="text" fullWidth onClick={() => navigate("/register")}>
               Need an account? Register
             </Button>
+            <Divider>OR</Divider>
+            <Box display="flex" justifyItems="center" justifyContent="center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google Login Failed")}
+              />
+            </Box>
           </Stack>
         </form>
       </Paper>

@@ -1,0 +1,41 @@
+databases:
+  - name: confidence-db
+    plan: free
+
+services:
+  # Backend Web Service
+  - type: web
+    name: confidence-engineered-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir backend app:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: confidence-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "False"
+      - key: FRONTEND_URL
+        sync: false
+        description: "The public URL of your React frontend static site (e.g., https://confidence-engineered-frontend.onrender.com). Set this after the frontend is deployed."
+      - key: OPENAI_API_KEY
+        sync: false
+        description: "Your OpenAI API key for AI interviewer generation and transcription"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+        description: "Optional. Your Google OAuth Client ID if you want to support Google Sign-In"
+
+  # Frontend Static Site
+  - type: web
+    name: confidence-engineered-frontend
+    runtime: static
+    rootDir: frontend/confidence-engineered
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+        description: "The public URL of your Flask backend Web Service (e.g., https://confidence-engineered-backend.onrender.com). Update and redeploy once you have the backend URL."

@@ -37,7 +37,8 @@ const JayChatbot = ({ dashboardData }) => {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/chatbot/jay', {
+      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://confidence-engineered-backend.onrender.com';
+      const response = await fetch(`${backendUrl}/api/chatbot/jay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

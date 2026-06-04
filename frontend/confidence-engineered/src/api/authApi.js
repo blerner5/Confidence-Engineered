@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://confidence-engineered-backend.onrender.com') + '/api';
 
 export async function registerUser(email, password, name, role) {
   const response = await fetch(`${API_BASE}/register`, {

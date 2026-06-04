@@ -57,7 +57,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/analytics/me`, {
+    const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://confidence-engineered-backend.onrender.com';
+    fetch(`${backendUrl}/api/analytics/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => {
@@ -115,7 +116,8 @@ export default function Dashboard() {
       try {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch('/api/parse-document', {
+        const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://confidence-engineered-backend.onrender.com';
+        const res = await fetch(`${backendUrl}/api/parse-document`, {
           method: 'POST',
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
           body: formData
@@ -158,7 +160,8 @@ export default function Dashboard() {
     setAvatarRole(role);
     if (!token) return;
     try {
-      await fetch('/api/user/update', {
+      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://confidence-engineered-backend.onrender.com';
+      await fetch(`${backendUrl}/api/user/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

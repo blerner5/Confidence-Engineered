@@ -29,8 +29,9 @@ services:
         description: "Optional. Your Google OAuth Client ID if you want to support Google Sign-In"
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: confidence-engineered-frontend
+    runtime: static
     rootDir: frontend/confidence-engineered
     buildCommand: npm install && npm run build
     staticPublishPath: dist
